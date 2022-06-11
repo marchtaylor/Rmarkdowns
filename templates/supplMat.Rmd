@@ -9,18 +9,18 @@ author:
 
 output:
   
-  # pdf_document:
-  #   latex_engine: xelatex
-  #   number_sections: TRUE
-  #   toc_depth: 3
-  #   highlight: tango
-  #   keep_tex:  true
-    
-  word_document:
-    toc: true # inclusion will prevent update when .doc is open
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: TRUE
     toc_depth: 3
     highlight: tango
-    reference_docx: template.docx
+    keep_tex:  true
+    
+  # word_document:
+  #   # toc: true # inclusion will prevent update when .doc is open
+  #   toc_depth: 3
+  #   highlight: tango
+  #   reference_docx: template.docx
 
 papersize: a4
 bibliography: refs.bib
@@ -39,9 +39,8 @@ knitr::opts_chunk$set(
 options(knitr.kable.NA = '')
 
 
-library(tiff)
 library(png)
-# library(formatR)
+library(formatR)
 library(knitr)
 
 
@@ -107,13 +106,13 @@ text(mod, "species", col="blue", cex=0.8, scaling="sites")
 **Table S`r iTab=iTab+1; iTab`.** bla bla
 
 ```{r, echo=FALSE}
-load("output/iris.Rdata")
-df <- as.data.frame(iris[1:6,])
+load("output/iris3.Rdata")
+df <- as.data.frame(iris3[1:8,])
 knitr::kable(df, digits = 3)
 # kableExtra::kable(df, digits = 3, booktabs = T, linesep = "") # useful for pdf
 ```
 
-Notes: Chi-square is a measure of the community variance explained by each environmental variable (also shown as the fraction of total, Frac. Expl.). Explanatory variables OC type and Month are factors and others are continuous. \*All variables showed significant effects at the p ≤ 0.001 level.
+Notes: Some *notes*. \*All variables showed significant effects at the p ≤ 0.001 level.
 
 \pagebreak
 

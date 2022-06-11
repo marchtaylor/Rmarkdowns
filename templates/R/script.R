@@ -20,7 +20,10 @@ dev.off()
 
 
 # 2. tables ---------------------------------------------------------------
+iris2 <- read.csv(file = "templates/data/iris.csv", row.names = 1)
+P <- prcomp(as.matrix(iris[,1:4]))
+iris3 <- cbind(iris2, P$x[,1:2])
 
-save(iris, file = "templates/output/iris.Rdata")
-write.csv(iris, file = "templates/output/iris.csv")
+save(iris3, file = "templates/output/iris3.Rdata")
+
 
