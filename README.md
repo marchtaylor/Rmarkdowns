@@ -1,5 +1,13 @@
-# Templates
+# Rmarkdowns
 
-1.  supplMat.Rmd - Creates either a pdf or Word document. Automatically numbers figures and tables with "*S*" prefix. Shows how to load pre-existing figures and tables to ensure sizing in .doc.
+- [Cross validation](https://github.com/marchtaylor/Rmarkdowns/blob/main/crossValidation/crossValidation.pdf)
+  - Permutated k-fold cross validation
+  - Influence of model complexity and sample size on prediction error
+  - Comparison to F-test and Akaike information criterion (AIC)
+- [Coupled field analysis](https://github.com/marchtaylor/Rmarkdowns/blob/main/coupledFields/coupledFields.pdf)
+  - Empirical Orthogonal Function (EOF) analysis
+  - Maximum Covariance Analysis (MCA/SVD)
+  - Canonical Correlation Analysis (CCA)
+  - Redundancy Analysis (RDA)
+- [Other templates](https://github.com/marchtaylor/Rmarkdowns/blob/main/templates)
 
-See [Rmarkdown Cookbook](https://bookdown.org/yihui/rmarkdown-cookbook/) for further topics.
