@@ -1,0 +1,53 @@
+---
+title: "Tables with kableExtra"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+date: '2022-06-12'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+  knitr::opts_chunk$set(fig.pos = "!H", out.extra = ""), # no floating of figs
+  tidy.opts=list(width.cutoff = 60), tidy=TRUE # automatically wraps code
+)
+
+library(kableExtra)
+dt <- mtcars[1:5, 1:6]
+```
+
+
+## KableExtra examples
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+
+
+```{r, echo=TRUE}
+load("output/iris3.Rdata")
+df <- as.data.frame(iris3[1:8,])
+# knitr::kable(df, digits = 3)
+kbl(df, digits = 3, booktabs = TRUE, linesep = "", caption = "Smaller text") %>%
+  kable_styling(font_size = 8, latex_options = "hold_position")
+```
+
+Some vertical space before next table
+
+\vspace{12pt}
+
+```{r, echo=TRUE}
+kbl(dt, digits = 3, booktabs = TRUE, linesep = "", caption = "Striped rows") %>%
+  kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+\vspace{12pt}
+
+```{r cars, echo=TRUE}
+kbl(mtcars[1:8, 1:4], digits = 3, booktabs = TRUE, linesep = "", caption = "Customized striped rows") %>%
+  kable_styling(latex_options = c("striped", "hold_position"), stripe_index = c(1,2, 5:6))
+```
+
+

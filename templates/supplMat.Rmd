@@ -34,7 +34,8 @@ knitr::opts_chunk$set(
   fig.align='center',
   comment=NA,
   message=FALSE, warning=FALSE, echo=TRUE,
-  tidy.opts=list(width.cutoff=60), tidy=TRUE)
+  tidy.opts=list(width.cutoff=60), tidy=TRUE # automatically wraps code
+)
 
 options(knitr.kable.NA = '')
 
@@ -105,18 +106,18 @@ text(mod, "species", col="blue", cex=0.8, scaling="sites")
 
 **Table S`r iTab=iTab+1; iTab`.** bla bla
 
-```{r, echo=FALSE}
+```{r, echo = FALSE}
 load("output/iris3.Rdata")
 df <- as.data.frame(iris3[1:8,])
 knitr::kable(df, digits = 3)
-# kableExtra::kable(df, digits = 3, booktabs = T, linesep = "") # useful for pdf
+# kableExtra::kbl(df, digits = 3, booktabs = T, linesep = "") # useful for pdfs and html formatting
 ```
 
 Notes: Some *notes*. \*All variables showed significant effects at the p ≤ 0.001 level.
 
 \pagebreak
 
-```{r, echo=FALSE}
+```{r, echo = FALSE}
 fname <- file.path("output/volcano.png")
 tmp <- readPNG(fname)
 knitr::include_graphics(fname, dpi = floor(dim(tmp)[2]/6))
