@@ -1,5 +1,7 @@
 # Templates
 
+Some basic R Markdown templates of interest:
+
 1.  **supplMat.Rmd** - Creates either a pdf or Word document. Automatically numbers figures and tables with "*S*" prefix. Shows how to load pre-existing figures and tables to ensure sizing in .doc.
 2.  **kableExtra_tables.Rmd** - Better looking tables for pdf and html. More examples in vignettes on [CRAN](https://CRAN.R-project.org/package=kableExtra).
 
