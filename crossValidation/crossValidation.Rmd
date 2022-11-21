@@ -1,15 +1,23 @@
 ---
 title: "Cross-validation demonstration"
-author: "Ma  pdf_document:
-    number_sections: yes
-    fig_caption: yesrc Taylor"
+author: "Marc Taylor"
 date: "`r format(Sys.Date(), '%Y-%b-%d')`"
 header-includes:
   \usepackage{caption}
   \usepackage{float}
-output:
-  # rmarkdown::html_vignette:
 
+output:
+  pdf_document:
+    number_sections: yes
+    fig_caption: yes
+  # html_document:
+  #   number_sections: yes
+  #   fig_caption: yes
+  #   df_print: paged
+  #   toc: true
+  #   toc_depth: 2
+  #   toc_float:
+  #     collapsed: true
 ---
 
 ```{r setup, include=FALSE}
@@ -20,28 +28,29 @@ knitr::opts_chunk$set(
 )
 ```
 
-
 # Introduction
+
 The following script demonstrates the use of cross-validation (CV) for use in estimating the predictive power of a model. More broadly, CV offers a framework for model comparison and selection. In particular, CV can aid in avoiding problems of ***overfitting*** and allow for the comparison of models that use different predictive modeling procedure.
 
 The basic idea of CV is to partition data into a "training" and "validation" sets. Model fitting is done on the training set, which is followed by prediction the response variable of the validation set. The error between observed and predicted values can be estimated according to a given index of choice; e.g.:
 
-1. Mean square error: $MSE = \frac{1}{n}\sum{(\hat{y}_{i}-y_{i}})^2$
-2. Root mean square error: $RMSE = \sqrt{\frac{1}{n}\sum{(\hat{y}_{i}-y_{i}})^2}$
-3. Root mean square error (log): $RMSE = \sqrt{\frac{1}{n}\sum{(\log{\hat{y}_{i}}-\log{y_{i}}})^2}$ 
-4. Median absolute percentage error $MdAPE =\text{median}(\frac {\mid \hat{y}_{i}-y_{i}\mid}{y_{i}} \times 100)$
+1.  Mean square error: $MSE = \frac{1}{n}\sum{(\hat{y}_{i}-y_{i}})^2$
+2.  Root mean square error: $RMSE = \sqrt{\frac{1}{n}\sum{(\hat{y}_{i}-y_{i}})^2}$
+3.  Root mean square error (log): $RMSE = \sqrt{\frac{1}{n}\sum{(\log{\hat{y}_{i}}-\log{y_{i}}})^2}$
+4.  Median absolute percentage error $MdAPE =\text{median}(\frac {\mid \hat{y}_{i}-y_{i}\mid}{y_{i}} \times 100)$
 
 ## Types of CV
+
 There are two main types of CV: 1. Exhaustive and 2. Non-exhaustive. Exhaustive CV includes "Leave-p-out" (LpO), which tests all possible partitions of the data. Some values for $p$ can become computationally expensive due to the number of possible combinations. "Leave-one-out" (LOO, is a commonly used type of exhaustive CV given that the number of possible combinations is equal to the number of samples in the data set ($p=n$)
 
 Non-exhaustive approaches test a subset of training / validation partitions, although the procedure may be repeated several times (*i.e.* permutations) in order to obtain a robust estimate of error. Examples include *k-fold* CV and *repeated random sub-sampling* CV (via Monte Carlo). In this demonstration we will focus on a permutated k-fold CV
 
-__*k-fold CV*__ divides the data into $k$ partitions. Each partition is left out during one of the fitting routines, and later used as the validation set. For example, a 10-fold CV will split the data into 10 (approximately) equal subsets. The model is then fit 10 times, sequentially leaving out each of the partitions and fitting with the remaining data (approx. 90\% of the samples). With each fitting, the model is used to predict the response values of the left-out partition, which results in each sample being used is used once in the validation set. Once completed, an overall error index is calculated and recorded. This final error index can then used to evaluate between different models. Note that it is important to reset the random value generator (e.g. `r "set.seed()"`) at the beginning of the routine in order to ensure that the same partitions are used for each model being tested.  
+***k-fold CV*** divides the data into $k$ partitions. Each partition is left out during one of the fitting routines, and later used as the validation set. For example, a 10-fold CV will split the data into 10 (approximately) equal subsets. The model is then fit 10 times, sequentially leaving out each of the partitions and fitting with the remaining data (approx. 90% of the samples). With each fitting, the model is used to predict the response values of the left-out partition, which results in each sample being used is used once in the validation set. Once completed, an overall error index is calculated and recorded. This final error index can then used to evaluate between different models. Note that it is important to reset the random value generator (e.g. `r "set.seed()"`) at the beginning of the routine in order to ensure that the same partitions are used for each model being tested.
 
 The following function can be used to determine the partitions given the number of samples in the full data set ($n$) and the number of partitions ($k$).
 
-
 ## Required function (from <https://github.com/marchtaylor/sinkr>):
+
 ```{r}
 # Determines k-fold partitions for a given number of samples
 # n is the number of samples; k is the number of partitions
@@ -57,7 +66,6 @@ kfold <- function(n, k=NULL){
   return(res)
 }
 ```
-
 
 **Example of `r "kfold"` use:**
 
@@ -80,12 +88,12 @@ legend("top", legend = seq(k), title = "fold number",
   pt.cex=2, pch=21, pt.bg = PAL, ncol=k, bty = "n")
 ```
 
-
-
 # Ex. 1. Generate synthetic dataset and fit polynomial functions of varying complexity
+
 In the following examples, we will be fitting a polynomial function of varying complexity to a synthetic data set where the underlying polynomial used to generate the data in known (degree=3).
 
 ## Synthetic data generation
+
 ```{r, fig.cap="Fitted polynomial functions of varying degree. The '*' denotes the number of degrees used in the data generation."}
 set.seed(1111)
 n <- 50
@@ -109,25 +117,25 @@ legend("topleft", legend=paste0(nterm, c("", "", "*", "", "", "")),
   title="polynomial degrees", bty="n", col=COLS, lty=1)
 ```
 
-
-
 ## Summary of term significance using largest polynomial
-It's obvious from a visual examination of the figure that polynomials of degree > 3 all fit the data pretty well, but it's less clear that the higher order polynomials are improving the predictive power to a significant degree. 
+
+It's obvious from a visual examination of the figure that polynomials of degree \> 3 all fit the data pretty well, but it's less clear that the higher order polynomials are improving the predictive power to a significant degree.
 
 The output of the `r "summary()"` function gives a first idea about the significance of the polynomial terms:
+
 ```{r}
 fit <- lm(ye ~ poly(x, degree=9), data=df)
 summary(fit)
 ```
 
-
 # Ex. 2. Cross validation
-Subsequent removal of terms and comparison of **nested models** via ANOVA, Akaike information criterion (AIC), etc., is a typical strategy for determining the "best" model. However, for cases where models are un-nested, or are based on differing model construction (i.e. mixed models with random terms), such criteria may not possible due to large differences in their degrees of freedom. For these cases, CV offers a robust tool for model selection. 
 
-The following example uses the same synthetic example, but demonstrates the ability of CV to determine the best model. In addition to varying polynomial complexity, the "trials" also test the impact of sample size on prediction error. 
+Subsequent removal of terms and comparison of **nested models** via ANOVA, Akaike information criterion (AIC), etc., is a typical strategy for determining the "best" model. However, for cases where models are un-nested, or are based on differing model construction (i.e. mixed models with random terms), such criteria may not possible due to large differences in their degrees of freedom. For these cases, CV offers a robust tool for model selection.
 
+The following example uses the same synthetic example, but demonstrates the ability of CV to determine the best model. In addition to varying polynomial complexity, the "trials" also test the impact of sample size on prediction error.
 
 ## Synthetic data generation
+
 ```{r}
 set.seed(1111)
 n <- seq(50, 500, 50) # number of data points
@@ -146,14 +154,14 @@ df <- data.frame(x, ye, train.err=NaN, valid.err=NaN)
 dim(df)
 ```
 
-
 In each trial, a "full model" is fit to all data. This aids later sections looking at AIC as a criterion of model selection, but also provides a base model fitting that can be updated during the k-fold permutations (i.e. using `r "update()"`). The code is structured in the following manner:
 
-1. The `r "for(i in seq(nrow(trials))){}"` loop runs through the trials
-2. The `r "for(j in seq(perms)){}"` loop runs through each permutation by trial
-3. The `r "for(k in seq(ks){}"` loop runs through each fold by permutation and trial
+1.  The `r "for(i in seq(nrow(trials))){}"` loop runs through the trials
+2.  The `r "for(j in seq(perms)){}"` loop runs through each permutation by trial
+3.  The `r "for(k in seq(ks){}"` loop runs through each fold by permutation and trial
 
 ## Loop through "trials"
+
 ```{r, results="hide"}
 # Loop through trials
 for(i in seq(nrow(trials))){ # for each trial (variable sample size, polynomial degree)
@@ -191,10 +199,12 @@ for(i in seq(nrow(trials))){ # for each trial (variable sample size, polynomial 
 }
 ```
 
-
 ## Results
+
 ### Influence of model complexity on prediction error
-As was seen with the results of `r "summary()"`, polynomials of degree > 3 are shown to increase prediction error in the validation set. By contrast, the error in estimating the training data set continues to decrease with increasing model complexity (*i.e.* over-fitting). 
+
+As was seen with the results of `r "summary()"`, polynomials of degree \> 3 are shown to increase prediction error in the validation set. By contrast, the error in estimating the training data set continues to decrease with increasing model complexity (*i.e.* over-fitting).
+
 ```{r, fig.cap="Error (RMSE) as a function of polynomial degree (n=50). Minimum error is designated by the filled symbol. The actual observation error of the synthetic dataset is shown by dotted grey line."}
 # n = 50
 trials.sub <- subset(trials, n==50)
@@ -209,9 +219,10 @@ abline(v=3, lty=2, col=8)
 mtext("Sample size (n = 50)")
 ```
 
-
 ### Influence of model complexity and sample size on prediction error
-Another interesting aspect of the trial data set is regarding the impact of sample size on over-fitting. The following plot shows that the difference between fitting the correct degree polynomial (3) and an over-fit polynomial (7) converge at higher sample size (*e.g.* n>150). So, smaller data-sets are more likely to suffer from poor prediction performance due to issues of over-fitting due to stronger impact of each sample. Such an exercise may be used in order to help plan the amount of data collection needed to improve prediction error.  
+
+Another interesting aspect of the trial data set is regarding the impact of sample size on over-fitting. The following plot shows that the difference between fitting the correct degree polynomial (3) and an over-fit polynomial (7) converge at higher sample size (*e.g.* n\>150). So, smaller data-sets are more likely to suffer from poor prediction performance due to issues of over-fitting due to stronger impact of each sample. Such an exercise may be used in order to help plan the amount of data collection needed to improve prediction error.
+
 ```{r, fig.cap="Error (RMSE) as a function of polynomial degree and sample size. The actual observation error of the synthetic dataset is shown by dotted grey line."}
 # Influence of sample size (actual error is approached from opposite directions 
 # by training and validation sets)
@@ -236,10 +247,12 @@ legend("topright",
 abline(h=sqrt(mean((err)^2)),lty=2, col=8)
 ```
 
-
 # Further comments
-### Akaike information criterion for model selection
+
+**Akaike information criterion for model selection**
+
 When comparing nested models or models of similar construction, Akaike information criterion (AIC) is usually an appropriate measure of model performance in that it introduces a penalization based on the degrees of freedom of the model.
+
 ```{r, fig.cap="Akaike information criterion (AIC) as a function of polynomial degree (n=50). Minimum error is designated by the filled symbol."}
 # AIC (correctly determines best model)
 # n=50
@@ -249,8 +262,3 @@ plot(AIC ~ nterm, trials.sub, t="o",
 abline(v=3, lty=2, col=8)
 mtext("Sample size (n = 50)")
 ```
-
-
-
-
-

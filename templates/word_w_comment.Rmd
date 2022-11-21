@@ -65,3 +65,87 @@ plot(pressure)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+```{r}
+spict2flr <- function(
+  spict_fit, 
+  output = "stock",
+  wt_units = "kg",
+  n_units = "10^3",
+  catch_units = "t",
+  stock_name = "",
+  disc = NULL
+){
+
+  yrs <- floor(spict_fit$inp$timeC)
+  
+  # extract biomass and make FLStock
+  Bs <- as.data.frame(get.par("logB", spict_fit, exp = TRUE))
+  # head(Bs)
+  Bs$time <- as.numeric(rownames(Bs))
+  Bs$year <- floor(Bs$time)
+  tmp <- data.frame(year = yrs)
+  tmp$B <- Bs$est[match(tmp$year, Bs$time)]
+  flq <- FLQuant(tmp$B, dim=c(1,nrow(tmp)), dimnames=list(age=1, year=tmp$year), units="t")
+  
+  stock <- FLStock(stock=flq, name=stock_name)
+  stock@stock.wt[1,] <- 1
+  stock@stock.n <- stock@stock / stock@stock.wt
+  stock@stock.wt@units <- wt_units
+  stock@stock.n@units <- n_units
+  
+  
+  # F or harvest rate (averaged over year)
+  Fs <- as.data.frame(get.par("logF", spict_fit, exp = TRUE))
+  Fs$time <- as.numeric(rownames(Fs))
+  Fs$year <- floor(Fs$time)
+  tmp <- aggregate(Fs$est, list(year=Fs$year), FUN = mean) # take mean over year?
+  names(tmp)[which(names(tmp)=="x")] <- "f"
+  stock@harvest[,ac(yrs)] <- tmp$f[match(yrs, tmp$year)]
+  stock@harvest@units <- "f"
+  
+  # catches
+  stock@catch[,ac(yrs)] <- spict_fit$inp$obsC[match(yrs, spict_fit$inp$timeC)]
+  stock@catch.wt[,] <- 1
+  stock@catch.n[] <- c(stock@catch / stock@catch.wt)
+  stock@catch@units <- catch_units
+  stock@catch.wt@units <- wt_units
+  stock@catch.n@units <- n_units
+  
+  # discards
+  if(!is.null(disc)){
+    stock@discards[,ac(yrs)] <- disc
+  }else{
+    stock@discards[,ac(yrs)] <- 0
+  }
+  stock@discards.wt[1,] <- 1
+  stock@discards.n[] <- c(stock@discards / stock@discards.wt)
+  stock@discards@units <- catch_units
+  stock@discards.wt@units <- wt_units
+  stock@discards.n@units <- n_units
+  
+  # landings
+  stock@landings <- stock@catch - stock@discards
+  stock@landings.wt[1,] <- 1
+  stock@landings.n[] <- c(stock@landings / stock@landings.wt)
+  stock@landings@units <- catch_units
+  stock@landings.wt@units <- wt_units
+  stock@landings.n@units <- n_units
+  
+  ## Other pars (not relevant?) ===============================
+  stock@mat[1,] <- 1
+  stock@harvest.spwn[1,] <- 0
+  stock@m[1,] <- 0
+  stock@m.spwn[1,] <- 0
+  
+  ## check name =======================================================
+  # name(stock)
+  
+  # plot
+  # plot(stock)
+  
+  return(stock)
+}
+```
+
