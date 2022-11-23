@@ -1,0 +1,333 @@
+---
+title: "Length-based stock assessment"
+
+header-includes:
+  \usepackage{caption}
+  \usepackage{float}
+
+output:
+#  pdf_document:
+#    number_sections: yes
+#    fig_caption: yes
+  html_document:
+    number_sections: yes
+    fig_caption: yes
+    df_print: paged
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: true
+      
+bibliography: datalimited.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  cache=TRUE,
+  echo = TRUE,
+  fig.width=5, fig.height=4.5,
+  fig.pos = "H"
+)
+```
+
+# Required packages
+
+```{r required_packages}
+library(TropFishR)
+library(LBSPR)
+library(fishboot)
+library(parallel)
+```
+
+
+
+# Introduction
+
+The basic idea behind length-based assessment is to try and get information on population dynamics out of length frequency (LFQ) data. Specifically, many stock assessments deal with reconstructing the population through time, and thus one needs information on growth and mortality. The "hard" part is trying to associate a given length with an age ("length to age conversion"). 
+
+Using TropFishR [@mildenberger_tropfishr:_2017]
+
+
+
+# Growth
+
+## ELEFAN
+Non-parametric ELEFAN procedure [@pauly_objective_1980, @pauly_elefan_1981, @pauly_studying_1982]
+
+
+### LFQ reconstruction
+
+```{r alba_restructure, fig.width=7.5}
+data("synLFQ7")
+lfqdat <- synLFQ7
+lfqdat <- lfqModify(lfqdat, bin_size = 2)
+
+lfqdat <- lfqRestructure(lfqdat, MA = 7)
+op <- par(mfcol = c(1,2))
+plot(lfqdat, Fname = "catch")
+mtext(text = "Original", side = 3, line = 0.25, adj = 0)
+plot(lfqdat, Fname = "rcounts")
+mtext(text = "Reconstructed", side = 3, line = 0.25, adj = 0)
+par(op)
+```
+
+### Grid search
+Explores a large range of settings, only some of which might be realistic. Notice the "banana-shaped" region of higher scores in the "Response Surface Analysis" (RSA) plot, which is a typical pattern showing similar scores along a region of similar growth performance indices ($\phi'$). Results can be used to refine search.
+
+```{r elefan, fig.cap="Response Surface Analysis (RSA) plot."}
+lfqdat <- ELEFAN(
+   lfq = lfqdat, method = "optimise",
+   Linf_range = seq(from = 60, to = 140, length.out = 10),
+   K_range = exp(seq(from = log(0.1), to = log(1), length.out = 10)),
+   contour = TRUE, hide.progressbar = TRUE, rsa.colors = hcl.colors(20)
+)
+points(x = lfqdat$par$Linf, y = lfqdat$par$K, col = 2, cex = 2, pch = "*")
+```
+
+### Optimized search algorithms
+TropfishR comes with 2 alternative ELEFAN routines with more efficient search algorithms (`ELEFAN_GA`, `ELEFAN_SA`). See @taylor_extending_2017 for details.
+
+
+```{r elefan_ga}
+lfqdat <- ELEFAN_GA(
+  lfq = lfqdat,
+  low_par = list(Linf = 80, K = 0.1, t_anchor = 0),
+  up_par = list(Linf = 140, K = 0.4, t_anchor = 1),
+  popSize = 60,
+  pmutation = 0.2,
+  maxiter = 100,
+  run = 20,
+  MA = 7,
+  plot.score = TRUE,
+  monitor = FALSE,
+  parallel = FALSE, 
+  seed = 1112
+)
+plot(lfqdat)
+unlist(lfqdat$par)
+```
+
+### Bootstrapped search
+
+@schwamborn_assessing_2019
+
+```{r elefan_boot}
+bootRes <- ELEFAN_GA_boot(
+  lfq = lfqdat,
+  nresamp = 20,
+  low_par = list(Linf = 80, K = 0.1, t_anchor = 0),
+  up_par = list(Linf = 140, K = 0.4, t_anchor = 1),
+  popSize = 60,
+  pmutation = 0.2,
+  maxiter = 100,
+  run = 20,
+  MA = 7,
+  seed = 1112,
+  parallel = TRUE,
+  no_cores = max(parallel::detectCores()-1, 6)
+)
+```
+
+Results can be visualized as a bivariate density plot (Linf, K):
+
+```{r elefan_boot_plot1}
+LinfK_scatterhist(bootRes, phi.contour = TRUE)
+```
+
+Univariate density plot by parameter:
+
+```{r elefan_boot_plot2}
+univariate_density(bootRes)
+```
+
+Resulting von Bertalanffy growth curve with best estimate (maximum density) and confidence intervals:
+
+```{r elefan_boot_plot3}
+tmp <- vbgfCI_time(bootRes)
+```
+
+Bootstrapped estimates must be passed back by hand:
+
+```{r}
+lfqdat$par$Linf <- tmp$max_dens$Linf
+lfqdat$par$K <- tmp$max_dens$K
+lfqdat$par$t_anchor <- tmp$max_dens$t_anchor
+plot(lfqdat)
+```
+
+### Seasonality in growth
+
+@taylor_extending_2017 specifically introduced `ELEFAN_GA` and `ELEFAN_SA` to more efficiently estimate parameters of the seasonalized von Bertalanffy growth function (additional parameters: `C` and `ts`). While the resulting VBGF parameters (`K` and `Linf`) may be more realistic in short-lived species, it is not yet straightforward how to best use the information for all steps of length-based stock assessment [see @sparre_can_1990 for some discussion of the issue].
+
+
+
+### ELEFAN best practices
+
+The following list highlights some existing best practices for using the ELEFAN approach (from TropFishR [vignette](https://cran.r-project.org/web/packages/TropFishR/vignettes/Using_TropFishR_ELEFAN_functions.html)):
+
+* `lfq` data 
+    + should contain relatively high counts that are representative of the length distribution of the population (in the best case) or catches.
+    + should be sampled at regular intervals throughout the year, and at roughly the same sampling effort.
+    + should cover a substantial degree of small length classes, as their relatively higher numbers and more apparent growth will aid in the fitting of the VBGF. A general rule-of-thumb is that the smallest bins should start at at least 25\% of Linf.
+* `MA` setting
+    + should approximate the number of bins spanning the width of a cohort following recruitment.
+* Optimization settings
+    + should allow for sufficient coverage of the full parameter search space during the initial, more randomized part of search (i.e. `SA_temp` argument in `ELEFAN_SA`; `popSize` and `pmutation` arguments in `ELEFAN_GA`).
+    + should allow for sufficient search time during later iterations / generations so that parameter space containing local maxima are fully explored (i.e. `SA_time` and `maxit` arguments in `ELEFAN_SA`; `maxiter`, `elitism`, and `run` arguments in `ELEFAN_GA`).
+
+
+Furthermore, why might you fail to observe cohorts in the LFQ data, necessary for fitting with ELEFAN? 
+
+1. LFQ data being based on large sizes only, where cohorts are likely mixed and difficult to observe. May be typical of LFQ data based on landings, rather than survey based.
+2. LFQ data based on undersampling of some life-history stages? e.g., due to seasonal migrations.
+
+
+
+## Other methods
+
+Bhattacharya (1967)
+- Analysis of modes that are subjectively identified
+
+
+LFEM [Length-Frequency Expectation-Maximization, @batts_estimating_2019]  (https://github.com/lbatts/LFEM) 
+
+-   Bayesian approach
+-   Does not require subjective binning of data
+-   Can identify cohort strength
+-   Not recommended for intra-annual LFQ sampling - i.e. requires longer time series of LFQ data and does not resolve seasonal growth (yet)
+
+MULTIFAN (Fournier et al., 1990, 1998). 
+
+
+# Natural mortality
+
+Not restrictive to length-based methods - several methods may require information on natural mortality. Very important parameter, that is difficult to measure. Thus, empirical
+
+```{r}
+## estimation of M
+Ms <- M_empirical(Linf = lfqdat$par$Linf, K_l = lfqdat$par$K, method = "Then_growth")
+
+## assign M to data set
+lfqdat$par$M <- as.numeric(Ms)
+```
+
+The result is a natural mortality (M) of `r round(lfqdat$par$M,2)`.
+
+# Fishing mortality and stock status
+
+## Exploitation rate
+
+```{r}
+## define plus group as largest length class smaller than Linf
+plus_group <- lfqdat$midLengths[max(which(lfqdat$midLengths < lfqdat$par$Linf))]
+
+## summarise catch matrix into vector and add plus group
+lfq_catch_vec <- lfqModify(lfqdat, vectorise_catch = TRUE, 
+  plus_group = plus_group)
+
+## run catch curve
+res_cc <- catchCurve(lfq_catch_vec, reg_int = c(20,43), calc_ogive = TRUE)
+
+## assign estimates to the data list
+lfq_catch_vec$par$Z <- res_cc$Z
+lfq_catch_vec$par$FM <- as.numeric(lfq_catch_vec$par$Z - lfq_catch_vec$par$M)
+```
+
+Selectivity ogive information can be extracted from `res_cc$L50` etc..
+
+Exploitation status can be simply calculated as $E=F/Z$; e.g. `lfq_catch_vec$par$FM / lfq_catch_vec$par$Z)` = `r round(lfq_catch_vec$par$FM / lfq_catch_vec$par$Z,2)`
+
+
+
+## LBSPR
+
+Length-based spawning potential ratio (LBSPR) analysis has a few advantages over the simplistic catch curve-based estimation. 
+
+First, it includes an assumption of variation of Linf (`CVLinf`), which influences the degree to which length distributions overlap among cohorts. We see some small upward curving in the catch curve above, which is a consequence of this overlap and a over-estimation of the numbers associated with a given age (e.g. true number of 10 year olds + large 9 year olds).
+
+Second, LBSPR provides a few more options for evaluating stock status and reference points (e.g. Fmsy).
+For example, yield-per-recruit (**YPR**) analysis is a long-used method for evaluating the most efficient harvesting of a given cohort. It takes into consideration the growth, natural mortality, and selectivity ogive information presented above in order to calculate fishing mortality that results in the maximum yield without "growth overfishing" (*Fmax*). The problem with this approach is that it does not consider impacts to the spawning population, which may affect future production and yield. A more conservative reference point might thus be a point on the yield curve (i.e. yield ~ F) that is 10% of it's slope at the origin (*F01*), which is lower than *Fmax*. **TropFishR** can conduct YPR, as well as a variant that simultaneously explores changes in the selectivity ogive ("Thompson and Bell" approach). See [vignette](https://cran.r-project.org/web/packages/TropFishR/vignettes/tutorial.html) for an example. 
+
+Using information on the length at maturity ogive, LBSPR provides additional information on the remaining spawning stock versus an unexploited level ("spawning potential ratio", **SPR**). This may be used as an additional reference point that helps to define limits to F so as to avoid "recruitment overfishing" (I believe one rule of thumb is not to deplete SPR below 40%). A further option is to make some assumption about the stock recruitment relationship (e.g. Beverton-Holt with a given `Steepness`), allowing for the estimation of **Fmsy**. This is typically much more conservative than Fmax
+
+The following example shows the application of LBSPR on our synthetic data set. We first need to set up the `LB_lengths` class object to contain yearly aggregated LFQ data:
+
+```{r}
+# collapse LFQ data to year sums
+lfq2 <- rowSums(lfqdat$catch)
+midLs <- lfqdat$midLengths
+
+# set up LB_pars object containing life history and other parameters  
+MyPars <- new("LB_pars")
+MyPars@Species <- "MySpecies"
+MyPars@Linf <- lfqdat$par$Linf
+MyPars@L50 <- 35 # length at maturity 50%
+MyPars@L95 <- 41 # length at maturity 95%
+MyPars@Walpha <- 0.015
+MyPars@Wbeta <- 3
+MyPars@M <- 1.5*lfqdat$par$K # Typical default OR lfq_catch_vec$par$M
+MyPars@MK <- 1.5 # Typical default OR lfq_catch_vec$par$M / lfqdat$par$K
+MyPars@Steepness <- 0.7 # Ave. of many spp
+MyPars@L_units <- "cm"
+
+# save .csv for later importing
+df <- data.frame(Length = midLs, y = lfq2)
+names(df)[2] <- format(lfqdat$dates[1], "%Y")
+tmpfile <- tempfile(fileext = ".csv")
+write.csv(x = df, file = tmpfile, row.names = FALSE)
+
+# create LB_lengths object
+Len1 <- new("LB_lengths", LB_pars = MyPars, file = tmpfile, 
+  dataType = "freq", header = TRUE, verbose = FALSE)
+
+# plot
+plotSize(Len1)
+```
+
+This will then be passed to `LBSPRfit`, followed by the calculation of the yield curve with `calcCurves`:
+
+```{r}
+myFit1 <- LBSPRfit(LB_pars = MyPars, LB_lengths = Len1, 
+  Control = list(maxFM = 1.5), verbose=FALSE)
+# plotSize(myFit1)
+# plotMat(myFit1)
+# plotEsts(myFit1)
+# myFit1@Ests
+tmp <- suppressWarnings(calcCurves(myFit1))
+
+Fmax <- tmp$YPR
+
+plot(YPR ~ FM, tmp, t="l", ylim=c(0,1), ylab = "Relative yield ; SPR/SSB")
+lines(SPR ~ FM, tmp, col = 1, lty = 2)
+lines(Yield ~ FM, tmp, col=2)
+lines(SSB ~ FM, tmp, col = 2, lty = 2)
+legend("bottomright", 
+  legend = c("Yield-per-recruit", "Yield w/ SRR", "SPR", "SSB"), 
+  lty = c(1,1,2,2), col = c(1,2,1,2))
+```
+
+
+
+# Further topics
+
+Strong assumption about recruitment stability. This may be overcome to some degree by analyzing several years of LFQ data. **LFEM** is a promising method that allows for an estimation of cohort strength. 
+
+@batts_estimating_2019
+
+@chong_performance_2019
+
+
+# Software Versions
+
+-   `r version$version.string`
+-   LBSPR: `r packageVersion('LBSPR')`
+-   fishboot: `r packageVersion('fishboot')`
+-   parallel: `r packageVersion('parallel')`
+-   TropFishR: `r packageVersion('TropFishR')`
+-   **Compiled**: `r format(Sys.Date(), '%Y-%b-%d')`
+
+# Author
+
+**Marc Taylor**. Thünen Institute of Sea Fisheries, Marine Living Resources Unit, Herwigstraße 31, 27572 Bremerhaven, Germany. <https://www.thuenen.de/en/sf/>
+
+# References
