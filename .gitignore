@@ -53,5 +53,5 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-
-
+/datalimited/datalimited_cache
+/datalimited/datalimited_files
