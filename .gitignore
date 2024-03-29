@@ -55,3 +55,6 @@ vignettes/*.pdf
 
 /datalimited/datalimited_cache
 /datalimited/datalimited_files
+
+tmp
+templates/*.log

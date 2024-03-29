@@ -124,7 +124,7 @@ bootRes <- ELEFAN_GA_boot(
   MA = 7,
   seed = 1112,
   parallel = TRUE,
-  no_cores = max(parallel::detectCores()-1, 6)
+  no_cores = min(parallel::detectCores()-1, 6)
 )
 ```
 
@@ -267,7 +267,7 @@ MyPars@Walpha <- 0.015
 MyPars@Wbeta <- 3
 MyPars@M <- 1.5*lfqdat$par$K # Typical default OR lfq_catch_vec$par$M
 MyPars@MK <- 1.5 # Typical default OR lfq_catch_vec$par$M / lfqdat$par$K
-MyPars@Steepness <- 0.7 # Ave. of many spp
+MyPars@Steepness <- 0.6 # Ave. of many spp
 MyPars@L_units <- "cm"
 
 # save .csv for later importing

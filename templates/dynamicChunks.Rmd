@@ -1,0 +1,93 @@
+---
+title: "How to create dynamic code chunks"
+author: Marc Taylor
+output: 
+  # pdf_document:
+  #   latex_engine: xelatex
+  #   number_sections: TRUE
+  #   toc_depth: 4
+  #   highlight: tango
+  #   keep_tex:  FALSE
+    
+  word_document:
+    # toc: true # inclusion will prevent update when .doc is open
+    toc_depth: 4
+    highlight: tango
+    reference_docx: template.docx
+
+
+date: "2024-03-28"
+---
+
+```{r setup, include=FALSE}
+library(png)
+library(knitr)
+
+tmpDir <- tempdir()
+```
+
+# Direct output of text and plots
+
+Important to set chunk argument `results="asis"`.
+
+```{r looped_chunk, echo=FALSE, fig.width=6, message=FALSE, results="asis"}
+outputType <-  c("text", "plot")
+for(i in seq(outputType)){
+  if(i != 1) cat('\\pagebreak')
+  cat("  \n##",  paste(outputType[i], "output"), "  \n") # level 2 header
+  
+  for(j in seq(4)){
+    cat("  \n###",  paste("iris column", j), "  \n") # level 3 header
+    if(outputType[i] == "text"){
+      cat(paste(names(iris)[j], "=", paste(c(iris[1:5, j], "..."), collapse = ", ")), "  \n")
+      cat("  \n")
+    }
+    if(outputType[i] == "plot"){
+      hist(iris[, j], main = names(iris)[j], xlab = "")
+      cat("  \n")
+    }
+  }
+}
+
+```
+
+# Gather plots from paths
+
+## Create plot files
+
+```{r create_plots, echo=TRUE, message=FALSE, warning=FALSE}
+attach(airquality)
+for(i in unique(Month)) {
+  fname.i <- file.path(tmpDir, paste0("plot", i, ".png"))
+  png(fname.i, width = 10, height = 5, units = "in", res = 200)
+  plot(airquality[airquality$Month == i,])
+  dev.off()
+}
+
+```
+
+## Looped chunk to create subsections and plot
+
+```{r looped_chunk2, echo=FALSE, fig.width=6, message=FALSE, results="asis"}
+# cat("  \n###",  "Monthly Air Quality Graphs  \n")
+
+attach(airquality)
+for(i in unique(Month)) {
+  fname.i <- file.path(tmpDir, paste0("plot", i, ".png"))
+  # figures get offset if header level > 3 for some reason (not an issue in a docx.)
+  cat("  \n###",  month.name[i], "Air Quaility  \n") 
+  tmp <- readPNG(fname.i)
+   # {width=...} overrides chunk fig.width
+  cat(paste0("![](", fname.i, ")", "{width=5in}"), "\n")
+  # plot(airquality[airquality$Month == i,])
+  cat("  \n")
+}
+```
+
+# References
+
+-   [[link]{.underline}](https://stackoverflow.com/a/36381976/1199289) - Looped chunks for headers and plots
+
+-   [[link]{.underline}](https://stackoverflow.com/a/51269087/1199289) - Gathering existing image files
+
+-   [[link]{.underline}](https://stackoverflow.com/a/77648053/1199289) - Gathered image size definition
