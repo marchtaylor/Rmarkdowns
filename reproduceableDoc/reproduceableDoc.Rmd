@@ -1,0 +1,246 @@
+---
+title: "Reproduceable Document"
+subtitle: "How to make document that can be easily updated"
+
+author: Max Müsterman, Fredericke Kruger
+
+
+output:
+    
+  word_document:
+    toc: true # table of contents
+    toc_depth: 3 # number of levels for table of contents
+    highlight: tango # color formatting for code chunks
+    reference_docx: template.docx # for setting up basic style of Word doc
+
+papersize: a4
+bibliography: refs.bib # bibtext file containing bibliographic records 
+csl: style.csl # style for reference formating (can be downloaded for specific journal)
+---
+
+```{r setup, include=FALSE}
+library(knitr) # for Rmarkdown
+
+library(png) # for reading in pngs
+library(formatR) # for making model summary tables
+
+library(flextable) # for lots of table options
+library(kableExtra) # extend the basic functionality of tables produced using knitr 
+
+
+knitr::opts_chunk$set(
+  cache = FALSE, # TRUE for speed. Remember to empty cache after changes to R code sections
+  cache.path = 'cache_supplMat/', fig.path  ='tex_supplMat/',
+  # fig.align='center',
+  comment = NA,
+  message = FALSE, warning = FALSE, echo = TRUE,
+  tidy.opts=list(width.cutoff = 60), tidy = TRUE # automatically wraps code
+)
+
+options(knitr.kable.NA = '')
+
+# set global flextable layout
+fonttype <- "Arial"
+set_flextable_defaults(
+  # font.family = "Palatino Linotype",
+  # hansi.family = "Palatino Linotype",
+  # cs.family = "Palatino Linotype",
+  font.family = fonttype,
+  hansi.family = fonttype,
+  cs.family = fonttype,
+  font.size = 8.5,
+  theme_fun = "theme_vanilla",
+  big.mark = "" # no 1000 separator
+)
+
+
+# set.seed(1)
+
+# counters for labelling figures and tables 
+## I prefer this so that I can make internal citations that are dynamic
+iFig = 0
+iTab = 0
+```
+
+```{r makeOutput, warning=FALSE, include=FALSE}
+# make some data and plots
+tmpDir <- tempdir()
+
+# plots
+fname <- file.path(tmpDir, "volcano.png")
+png(fname, width = 3, height = 2, units = "in", res = 400)
+  op <- par(mar = c(3,3,1,1), ps = 8)
+  image(volcano)
+  par(op)
+dev.off()
+
+n <- 1e5
+dat <- data.frame(x = rnorm(n), y = rnorm(n))
+fname <- file.path(tmpDir, "points.png")
+png(fname, width = 5, height = 5, units = "in", res = 400)
+  op <- par(mar = c(4,4,1,1))
+  plot(y ~ x, dat, pch = ".", cex = 3, col = adjustcolor(1,0.1))
+  par(op)
+dev.off()
+
+P <- prcomp(as.matrix(iris[,1:4]))
+iris2 <- cbind(iris, P$x[,1:2])
+
+fname <- file.path(tmpDir, "iris_pca.png")
+png(fname, width = 5, height = 5, units = "in", res = 400)
+  op <- par(mar = c(4,4,2,1))
+  plot(PC2~PC1, iris2, col = Species, pch = 16)
+  legend("topright", legend = unique(iris2$Species), col = seq(unique(iris2$Species)), pch = 16)
+  mtext("PCA (iris morphology)", adj = 0)
+  par(op)
+dev.off()
+
+# tables
+fname <- file.path(tmpDir, "iris2.Rdata")
+save(iris2, file = fname)
+
+gsub("\\\\", "/", tmpDir) # to get path
+
+```
+
+\pagebreak
+
+# Basic outputs from R *chunks*
+
+## Run code and output directly
+
+This can be useful for simple outputs, but it is a bit harder to control plot formatting in my opinion. By setting "echo = FALSE", the call to R is not shown - only the output:  
+
+```{r echo=FALSE, fig.cap="Figure X. Caption information.", fig.dpi=400}
+plot(iris)
+```
+
+<br>
+
+<br>
+
+\pagebreak
+
+## Change the figure dimensions  
+
+Note that '"fig.align = "center"' doesn't work in a Word document.  
+
+```{r echo=FALSE, fig.dpi=400, fig.height=4, fig.width=4}
+par(ps = 8)
+plot(iris)
+```
+
+# Citations
+
+-   Citation with author "[\@pastoors_effects_2000]": [@pastoors_effects_2000]
+-   Multiple citations "[\@chong_performance_2020; \@taylor_using_2021]": [@chong_performance_2020; @taylor_using_2021]
+-   Cited in line "\@friedland_trends_2021": @friedland_trends_2021
+-   Citation without author "[-\@chong_performance_2020]": [-@chong_performance_2020]
+
+These automatically get added to a list of references at the end. Thus, a final header for "References" should be added.  
+
+# Figures
+
+In the hidden code chunk at the top, I have added counters for figures and tables, (iTab, iFig). To print out the counter, you will need to perform an in-line call to R using back ticks, \`r\`, to both set it to the next value and print it. For example, my next figure will be Figure `r iFig+1`. I included the code "r iFig+1", which printed the next counter value. I usually do all the setting of new counter values in the caption of the Figure itself; e.g. the caption below contains the inline R code "r iFig=iFig+1; iFig", which first advances the counter and then prints the value.  
+
+```{r echo=FALSE, fig.dpi=400}
+par(mar = c(4,4,1,1))
+image(volcano)
+```
+
+**Figure `r iFig=iFig+1; iFig`.** This figure shows bla bla.  
+
+Finally, for best control on figure output, I usually try to work with plots that have been previously rendered according to the specifications that I want. A png format is usually a good option due to file size and quality (output with knitr::include_graphics). Again, I have advanced the figure counter, and Figure `r iFig+1` should be approximately 2 by 3 inches in size.  
+
+```{r echo=FALSE}
+fname <- file.path(tmpDir, "volcano.png")
+knitr::include_graphics(fname)
+```
+
+**Figure `r iFig=iFig+1; iFig`.** This figure shows the elevation of a volcano.  
+
+<br>
+
+<br>
+
+\pagebreak
+
+And one last example, Figure `r iFig+1` should be approximately 5 by 5 inches in size.
+
+```{r echo=FALSE, fig.dpi=400}
+fname <- file.path(tmpDir, "points.png")
+knitr::include_graphics(fname)
+```
+
+**Figure `r iFig=iFig+1; iFig`.** A plot of a bunch of random points.
+  
+  
+  
+
+\pagebreak
+
+# Tables
+
+## Standard output
+
+<br>
+
+Using the *flextable* package, we can control the look of tables much better (e.g. output of *iris* dataset, Table `r iTab+1`). See [flextable book](https://ardata-fr.github.io/flextable-book/) for lots of examples.  
+
+
+
+**Table `r iTab=iTab+1; iTab`.** Head of *iris* dataset.  
+
+```{r echo=FALSE}
+fname <- file.path(tmpDir, "iris2.Rdata")
+load(file = fname)
+
+ft <- flextable(head(iris2, 10))
+ft <- bg(ft, part = "header", bg = "grey80")
+ft <- set_table_properties(ft, layout = "autofit")
+ft
+```
+
+<br> <br>
+
+\pagebreak
+
+## Model output
+
+First, we see the direct printing of a linear model summary:  
+
+<br>
+
+<br>
+
+  
+
+```{r}
+fit <- lm(Petal.Length ~ Petal.Width*Species, data = iris)
+summary(fit)
+```
+
+<br>
+
+<br>
+
+\pagebreak
+
+Then, we see a better version using the *flextable* package (Table `r iTab+1`):
+
+<br>
+
+**Table `r iTab=iTab+1; iTab`.** Clean model summary from *as_flextable*.
+
+```{r echo=FALSE}
+ft <- as_flextable(fit)
+
+ft <- bg(ft, part = "header", bg = "grey80")
+ft <- set_table_properties(ft, layout = "autofit")
+ft
+
+```
+
+\pagebreak
+
+# References
