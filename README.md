@@ -9,5 +9,14 @@
   - Maximum Covariance Analysis (MCA/SVD)
   - Canonical Correlation Analysis (CCA)
   - Redundancy Analysis (RDA)
+- [Length-based stock assessment](https://github.com/marchtaylor/Rmarkdowns/blob/main/datalimited)
+  - Growth
+  - Natural mortality
+  - Fishing mortality and stock status
+- [Reproduceable document](https://github.com/marchtaylor/Rmarkdowns/blob/main/reproduceableDoc)
+  - Word document generation with:
+    - Table of contents
+    - Citation/Reference formatting and style
+    - Figure & Table numbering and formatting
 - [Other templates](https://github.com/marchtaylor/Rmarkdowns/blob/main/templates)
 
