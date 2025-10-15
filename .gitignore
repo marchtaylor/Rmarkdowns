@@ -56,5 +56,7 @@ vignettes/*.pdf
 /datalimited/datalimited_cache
 /datalimited/datalimited_files
 
+/reproduceableDoc/reproduceableDoc.docx
+
 tmp
 templates/*.log
